@@ -36,26 +36,24 @@ l_int32 h = 80;
 l_int32 DTW_distance(NUMA* na_pix1, NUMA* na_pix2)
 {
     // Function to calculate DTW of two na sequences
-    l_int32 window = abs(na_pix1->n - na_pix2->n);
-    if (window > min(na_pix1->n, na_pix2->n)/2)
-        return -1;
+    l_int32 window = max(30, abs(na_pix1->n - na_pix2->n));
+    /* if (window > min(na_pix1->n, na_pix2->n)/2) */
+    /*     return -1; */
     fprintf(stderr, "size: (%d, %d), window: %d\n", na_pix1->n,
             na_pix2->n,
             window);
     l_int32 *DTW = (l_int32 *)lept_calloc((na_pix1->n)*(na_pix2->n),
                                           sizeof(l_int32));
     l_int32 i, j;
-    for (i=1; i<na_pix1->n; i++) {
-        DTW[(i*na_pix2->n)] = 10000;
-    }
-    for (j=1; j<na_pix2->n; j++) {
-        DTW[j] = 10000;
+    for (i=0; i<na_pix1->n; i++) {
+        for (j=0; j<na_pix2->n; j++) {
+            DTW[(i*na_pix2->n)+j] = 10000;
+        }
     }
     DTW[0] = 0;
-    fprintf(stderr, "Done initializing\n");
     for (i=1; i<na_pix1->n; i++) {
-        // for (j=max(1, i-window); j<min(na_pix2->n, i+window); j++) {
-        for (j=1; j<na_pix2->n; j++) {
+        for (j=max(1, i-window); j<min(na_pix2->n, i+window); j++) {
+        // for (j=1; j<na_pix2->n; j++) {
             l_int32 s, d;
             numaGetIValue(na_pix1, i, &s);
             numaGetIValue(na_pix2, j, &d);
@@ -67,7 +65,6 @@ l_int32 DTW_distance(NUMA* na_pix1, NUMA* na_pix2)
                      DTW[((i-1)*na_pix2->n)+(j-1)]);
         }
     }
-    fprintf(stderr, "Done Calculating DTW\n");
     return DTW[(na_pix1->n)*(na_pix2->n)-1];
 }
 
