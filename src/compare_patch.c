@@ -11,6 +11,14 @@
 #include "string.h"
 #include "allheaders.h"
 
+#define min(x, y) ((x) < (y) ? (x) : (y))
+#define max(x, y) ((x) < (y) ? (y) : (x))
+#define min3(x, y, z) (min(x, min(y, z)))
+#define argmin3(x, y, z) ((x < y && x < z) ? 0 : (y < z ? 1 : 2))
+#define sgn(x) ((x) < 0 ? -1 : 1)
+#define abs(x) ((x)*sgn(x))
+#define unused(x) ((void) x)
+
 // number of neighbor patches to locate on both sides
 l_int32 NUM_NEIGHBOR_PATCHS = 1;
 static const l_int32  MIN_WORD_WIDTH = 5;
@@ -28,7 +36,39 @@ l_int32 h = 80;
 l_int32 DTW_distance(NUMA* na_pix1, NUMA* na_pix2)
 {
     // Function to calculate DTW of two na sequences
-    return 0;
+    l_int32 window = abs(na_pix1->n - na_pix2->n);
+    if (window > min(na_pix1->n, na_pix2->n)/2)
+        return -1;
+    fprintf(stderr, "size: (%d, %d), window: %d\n", na_pix1->n,
+            na_pix2->n,
+            window);
+    l_int32 *DTW = (l_int32 *)lept_calloc((na_pix1->n)*(na_pix2->n),
+                                          sizeof(l_int32));
+    l_int32 i, j;
+    for (i=1; i<na_pix1->n; i++) {
+        DTW[(i*na_pix2->n)] = 10000;
+    }
+    for (j=1; j<na_pix2->n; j++) {
+        DTW[j] = 10000;
+    }
+    DTW[0] = 0;
+    fprintf(stderr, "Done initializing\n");
+    for (i=1; i<na_pix1->n; i++) {
+        // for (j=max(1, i-window); j<min(na_pix2->n, i+window); j++) {
+        for (j=1; j<na_pix2->n; j++) {
+            l_int32 s, d;
+            numaGetIValue(na_pix1, i, &s);
+            numaGetIValue(na_pix2, j, &d);
+            l_int32 distance = abs(s - d);
+            // fprintf(stderr, "(s, d): (%d, %d)\n", s, d);
+            DTW[(i*na_pix2->n)+j] = distance +  \
+                min3(DTW[((i-1)*na_pix2->n)+j],
+                     DTW[(i*na_pix2->n)+(j-1)],
+                     DTW[((i-1)*na_pix2->n)+(j-1)]);
+        }
+    }
+    fprintf(stderr, "Done Calculating DTW\n");
+    return DTW[(na_pix1->n)*(na_pix2->n)-1];
 }
 
 l_int32 main(int    argc,
@@ -159,6 +199,9 @@ l_int32 main(int    argc,
                 }
             }
             // DTW between cpatch_na and tpatch_na
+            l_int32 distance = DTW_distance(cpatch_na, tpatch_na);
+            if (distance != -1) 
+                fprintf(stderr, "Distance (%d, %d) => %d\n", i, j, distance);
             boxDestroy(&box_shifted);
             pixDestroy(&pix_shifted);
         }
