@@ -20,16 +20,136 @@
 #define unused(x) ((void) x)
 
 // number of neighbor patches to locate on both sides
-l_int32 NUM_NEIGHBOR_PATCHS = 1;
+l_int32 NUM_NEIGHBOR_PATCHES = 1;
 static const l_int32  MIN_WORD_WIDTH = 5;
 static const l_int32  MIN_WORD_HEIGHT = 10;
 static const l_int32  MAX_WORD_WIDTH = 500;
 static const l_int32  MAX_WORD_HEIGHT = 80;
 
+NUMA* Get_Roof(PIX *patch) {
+    l_int32     patch_i, patch_j, patch_w, patch_h, wpl;
+    l_uint32   *line, *data;
+    l_float32  *array;
+    /* NUMA *patch_na = pixCountByColumn(patch_current, NULL); */
+    /* patch_na = numaTransform(patch_na, */
+    /*                          0, */
+    /*                          1.0/pixGetHeight(patch)); */
+    NUMA *patch_na;
+    pixGetDimensions(patch, &patch_w, &patch_h, NULL);
+    patch_na = numaCreate(patch_w);
+    numaSetCount(patch_na, patch_w);
+    array = numaGetFArray(patch_na, L_NOCOPY);
+    // Initializing
+    for (patch_j = 0; patch_j < patch_w; patch_j++)
+        array[patch_j] = -1;
+
+    data = pixGetData(patch);
+    wpl = pixGetWpl(patch);
+    // We initialize the array with -1, and at first instant of
+    // GET_DATA_BIT set it and avoid that width bin henceforth
+    // NOTE: This can be done in better way.
+    for (patch_i = 0; patch_i < patch_h; patch_i++) {
+        line = data + wpl * patch_i;
+        for (patch_j = 0; patch_j < patch_w; patch_j++) {
+            if ((array[patch_j] == -1) && GET_DATA_BIT(line, patch_j)) {
+                array[patch_j] = patch_i/(l_float32)patch_h;
+            }
+        }
+    }
+    return patch_na;
+}
+
+NUMA* Get_Floor(PIX *patch) {
+    l_int32     patch_i, patch_j, patch_w, patch_h, wpl;
+    l_uint32   *line, *data;
+    l_float32  *array;
+    /* NUMA *patch_na = pixCountByColumn(patch_current, NULL); */
+    /* patch_na = numaTransform(patch_na, */
+    /*                          0, */
+    /*                          1.0/pixGetHeight(patch)); */
+    NUMA *patch_na;
+    pixGetDimensions(patch, &patch_w, &patch_h, NULL);
+    patch_na = numaCreate(patch_w);
+    numaSetCount(patch_na, patch_w);
+    array = numaGetFArray(patch_na, L_NOCOPY);
+    // Initializing
+    for (patch_j = 0; patch_j < patch_w; patch_j++)
+        array[patch_j] = -1;
+
+    data = pixGetData(patch);
+    wpl = pixGetWpl(patch);
+    // We initialize the array with -1, and at first instant of
+    // GET_DATA_BIT set it and avoid that width bin henceforth
+    // NOTE: This can be done in better way.
+    for (patch_i = (patch_h - 1); patch_i > -1 ; patch_i--) {
+        line = data + wpl * patch_i;
+        for (patch_j = 0; patch_j < patch_w; patch_j++) {
+            if ((array[patch_j] == -1) && GET_DATA_BIT(line, patch_j)) {
+                array[patch_j] = patch_i/(l_float32)patch_h;
+            }
+        }
+    }
+    return patch_na;
+}
+
+NUMA* Get_Height(PIX *patch) {
+    l_int32 patch_i, patch_j, patch_w, patch_h, wpl;
+    l_uint32 *line, *data;
+    l_float32 *array_top, *array_bottom;
+    /* NUMA *patch_na = pixCountByColumn(patch_current, NULL); */
+    /* patch_na = numaTransform(patch_na, */
+    /*                          0, */
+    /*                          1.0/pixGetHeight(patch)); */
+    NUMA *patch_top;
+    NUMA *patch_bottom;
+    NUMA *patch_height;
+    pixGetDimensions(patch, &patch_w, &patch_h, NULL);
+    patch_top = numaCreate(patch_w);
+    patch_bottom = numaCreate(patch_w);
+    patch_height = numaCreate(patch_w);
+    numaSetCount(patch_top, patch_w);
+    numaSetCount(patch_bottom, patch_w);
+    numaSetCount(patch_height, patch_w);
+    array_top = numaGetFArray(patch_top, L_NOCOPY);
+    // Initializing
+    for (patch_j = 0; patch_j < patch_w; patch_j++)
+        array_top[patch_j] = -1;
+
+    data = pixGetData(patch);
+    wpl = pixGetWpl(patch);
+    // We initialize the array with -1, and at first instant of
+    // GET_DATA_BIT set it and avoid that width bin henceforth
+    // NOTE: This can be done in better way.
+    for (patch_i = 0; patch_i < patch_h; patch_i++) {
+        line = data + wpl * patch_i;
+        for (patch_j = 0; patch_j < patch_w; patch_j++) {
+            if ((array_top[patch_j] == -1) && GET_DATA_BIT(line, patch_j)) {
+                array_top[patch_j] = patch_i/(l_float32)patch_h;
+            }
+        }
+    }
+    array_bottom = numaGetFArray(patch_bottom, L_NOCOPY);
+    // Initializing
+    for (patch_j = 0; patch_j < patch_w; patch_j++)
+        array_bottom[patch_j] = -1;
+    
+    for (patch_i = (patch_h - 1); patch_i > -1 ; patch_i--) {
+        line = data + wpl * patch_i;
+        for (patch_j = 0; patch_j < patch_w; patch_j++) {
+            if ((array_bottom[patch_j] == -1) && GET_DATA_BIT(line, patch_j)) {
+                array_bottom[patch_j] = patch_i/(l_float32)patch_h;
+            }
+        }
+    }
+    
+    patch_height = numaArithOp(NULL, patch_top, patch_bottom, L_ARITH_SUBTRACT);
+    return patch_height;
+}
+
 l_float32 DTW_distance(NUMA* na_pix1, NUMA* na_pix2)
 {
     // Function to calculate DTW of two na sequences
-    l_int32 window = max(80, abs(na_pix1->n - na_pix2->n));
+    l_int32 window = max(50, abs(na_pix1->n - na_pix2->n));
     l_float32 *DTW = (l_float32 *)lept_calloc((na_pix1->n)*(na_pix2->n),
                                               sizeof(l_float32));
 
@@ -94,75 +214,34 @@ l_int32 main(int    argc,
         DTW_distances = numaCreate(boxa_target->n);
         BOX *box_current = boxaGetBox(boxa_current, i, L_CLONE);
         PIX *patch_current = pixClipRectangle(pix_orig, box_current, NULL);
-        
-        l_int32     cpatch_i, cpatch_j, cpatch_w, cpatch_h, cwpl;
-        l_uint32   *cline, *cdata;
-        l_float32  *carray;
-        // NUMA *cpatch_na = pixCountByColumn(pix_orig, NULL);
-        NUMA *cpatch_na;
-        pixGetDimensions(patch_current, &cpatch_w, &cpatch_h, NULL);
-        cpatch_na = numaCreate(cpatch_w);
-        numaSetCount(cpatch_na, cpatch_w);
-        carray = numaGetFArray(cpatch_na, L_NOCOPY);
-        // Initializing
-        for (cpatch_j = 0; cpatch_j < cpatch_w; cpatch_j++)
-            carray[cpatch_j] = -1;
-
-        cdata = pixGetData(patch_current);
-        cwpl = pixGetWpl(patch_current);
-        // We initialize the array with -1, and at first instant of
-        // GET_DATA_BIT set it and avoid that width bin henceforth
-        // NOTE: This can be done in better way.
-        for (cpatch_i = 0; cpatch_i < cpatch_h; cpatch_i++) {
-            cline = cdata + cwpl * cpatch_i;
-            for (cpatch_j = 0; cpatch_j < cpatch_w; cpatch_j++) {
-                if ((carray[cpatch_j] == -1) && GET_DATA_BIT(cline, cpatch_j)) {
-                    carray[cpatch_j] = cpatch_i/(l_float32)cpatch_h;
-                }
-            }
-        }
-
+        NUMA *cpatch_roof = Get_Roof(patch_current);
+        NUMA *cpatch_height = Get_Height(patch_current);
+        NUMA *cpatch_floor = Get_Floor(patch_current);
+        NUMA *cpatch_pix_row = pixCountByRow(patch_current, NULL);
+        cpatch_pix_row = numaTransform(cpatch_pix_row, 0, 1/(l_float32)pixGetWidth(patch_current));
         // Now we have to run DTW over these numa series of current
         // patch and target patch
         for (j = 0; j < boxa_target->n; j++) {
             BOX *box_target = boxaGetBox(boxa_target, j, L_CLONE);
             PIX *patch_target = pixClipRectangle(pix_target, box_target, NULL);
-
-            // Calculating roof of target patch
-            l_int32     tpatch_i, tpatch_j, tpatch_w, tpatch_h, twpl;
-            l_uint32   *tline, *tdata;
-            l_float32  *tarray;
-            // NUMA *tpatch_na = pixCountByColumn(patch_target, NULL);
-            NUMA *tpatch_na;
-            pixGetDimensions(patch_target, &tpatch_w, &tpatch_h, NULL);
-            tpatch_na = numaCreate(tpatch_w);
-            numaSetCount(tpatch_na, tpatch_w);
-            tarray = numaGetFArray(tpatch_na, L_NOCOPY);
-            // Initializing
-            for (tpatch_j = 0; tpatch_j < tpatch_w; tpatch_j++)
-                tarray[tpatch_j] = -1;
-        
-            tdata = pixGetData(patch_target);
-            twpl = pixGetWpl(patch_target);
-            // We initialize the array with -1, and at first instant of
-            // GET_DATA_BIT set it and avoid that width bin henceforth
-            // NOTE: This can be done in better way.
-            for (tpatch_i = 0; tpatch_i < tpatch_h; tpatch_i++) {
-                tline = tdata + twpl * tpatch_i;
-                for (tpatch_j = 0; tpatch_j < tpatch_w; tpatch_j++) {
-                    if ((tarray[tpatch_j] == -1) && GET_DATA_BIT(tline, tpatch_j)) {
-                        // Normalizing the height/roof value
-                        tarray[tpatch_j] = tpatch_i/(l_float32)tpatch_h;
-                    }
-                }
-            }
+            NUMA *tpatch_roof = Get_Roof(patch_target);
+            NUMA *tpatch_height = Get_Height(patch_target);
+            NUMA *tpatch_floor = Get_Floor(patch_target);
+            NUMA *tpatch_pix_row = pixCountByRow(patch_target, NULL);
+            tpatch_pix_row = numaTransform(tpatch_pix_row, 0, 1/(l_float32)pixGetWidth(patch_target));
             // DTW between cpatch_na and tpatch_na
-            l_float32 distance = DTW_distance(cpatch_na, tpatch_na);
+            l_float32 distance = 0;
+            /* distance += DTW_distance(cpatch_roof, tpatch_roof); */
+            /* distance += DTW_distance(cpatch_height, tpatch_height); */
+            /* distance += DTW_distance(cpatch_floor, tpatch_floor); */
+            distance += DTW_distance(cpatch_pix_row, tpatch_pix_row);
             // fprintf(stderr, "Distance %f with patch %d\n", distance, j);
             numaAddNumber(DTW_distances, distance);
             boxDestroy(&box_target);
             pixDestroy(&patch_target);
-            numaDestroy(&tpatch_na);
+            numaDestroy(&tpatch_roof);
+            numaDestroy(&tpatch_height);
+            numaDestroy(&tpatch_floor);
         }
 
         // fprintf(stderr, "Done calculating distances\n");
@@ -177,7 +256,9 @@ l_int32 main(int    argc,
         sprintf(patch_name, "patch-%d.png", i);
         pixWrite(patch_name, patch_current, IFF_PNG);
         numaDestroy(&DTW_distances);
-        numaDestroy(&cpatch_na);
+        numaDestroy(&cpatch_floor);
+        numaDestroy(&cpatch_height);
+        numaDestroy(&cpatch_roof);
         pixDestroy(&result_pix);
         boxDestroy(&result_box);
         pixDestroy(&patch_current);
