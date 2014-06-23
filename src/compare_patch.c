@@ -52,9 +52,9 @@ l_int32 main(int    argc,
         DTW_distances = numaCreate(boxa_target->n);
         BOX *box_current = boxaGetBox(boxa_current, i, L_CLONE);
         PIX *patch_current = pixClipRectangle(pix_orig, box_current, NULL);
-        NUMA *cpatch_roof = Get_Roof(patch_current);
+        NUMA *cpatch_roof = Top_Extremes(patch_current);
         NUMA *cpatch_height = Get_Height(patch_current);
-        NUMA *cpatch_floor = Get_Floor(patch_current);
+        NUMA *cpatch_floor = Bottom_Extremes(patch_current);
         NUMA *cpatch_right = Right_Extremes(patch_current);
         NUMA *cpatch_left = Left_Extremes(patch_current);
         NUMA *cpatch_pix_row = pixCountByRow(patch_current, NULL);
@@ -64,9 +64,9 @@ l_int32 main(int    argc,
         for (j = 0; j < boxa_target->n; j++) {
             BOX *box_target = boxaGetBox(boxa_target, j, L_CLONE);
             PIX *patch_target = pixClipRectangle(pix_target, box_target, NULL);
-            NUMA *tpatch_roof = Get_Roof(patch_target);
+            NUMA *tpatch_roof = Top_Extremes(patch_target);
             NUMA *tpatch_height = Get_Height(patch_target);
-            NUMA *tpatch_floor = Get_Floor(patch_target);
+            NUMA *tpatch_floor = Bottom_Extremes(patch_target);
             NUMA *tpatch_right = Right_Extremes(patch_target);
             NUMA *tpatch_left = Left_Extremes(patch_target);            
             NUMA *tpatch_pix_row = pixCountByRow(patch_target, NULL);

@@ -16,8 +16,8 @@ static const l_int32  MIN_WORD_HEIGHT = 10;
 static const l_int32  MAX_WORD_WIDTH = 500;
 static const l_int32  MAX_WORD_HEIGHT = 80;
 
-NUMA* Get_Roof(PIX *);
-NUMA* Get_Floor(PIX *);
+NUMA* Top_Extremes(PIX *);
+NUMA* Bottom_Extremes(PIX *);
 NUMA* Get_Height(PIX *);
 NUMA* Left_Extremes(PIX *);
 NUMA* Right_Extremes(PIX *);

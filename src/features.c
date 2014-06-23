@@ -1,6 +1,6 @@
 #include "features.h"
 
-NUMA* Get_Roof(PIX *patch) {
+NUMA* Top_Extremes(PIX *patch) {
     l_int32     patch_i, patch_j, patch_w, patch_h, wpl;
     l_uint32   *line, *data;
     l_float32  *array;
@@ -101,7 +101,7 @@ NUMA* Left_Extremes(PIX *patch) {
     return patch_na;
 }
 
-NUMA* Get_Floor(PIX *patch) {
+NUMA* Bottom_Extremes(PIX *patch) {
     l_int32     patch_i, patch_j, patch_w, patch_h, wpl;
     l_uint32   *line, *data;
     l_float32  *array;
