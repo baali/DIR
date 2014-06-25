@@ -6,7 +6,7 @@ word) without doing OCR. Available literature for techniques which I
 am following:
 
 - `Keyword spotting in document images through word shape coding <http://www.comp.nus.edu.sg/~tancl/publications/c2009/icdar09-baishuyong.pdf>`_
-- `Searching in document images <cvit.iiit.ac.in/papers/jawahar04search.pdf>`_
+- `Searching in document images <http://cvit.iiit.ac.in/papers/jawahar04search.pdf>`_
 
   
 I tried to use popular feature extraction and matching algorithms like
